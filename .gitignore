@@ -1,22 +1,23 @@
-# Core / LLM Frameworks
-langchain>=0.2.0
-langgraph>=0.1.0
-langchain-openai>=0.1.0
-langchain-community>=0.2.0
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/
 
-# Vector Database & RAG
-chromadb>=0.5.0
-pypdf>=4.0.0
-sentence-transformers>=2.5.0
+# Environment Variables / Secrets
+.env
 
-# Data Processing
-pandas>=2.0.0
-numpy>=1.24.0
+# Database & Vector DB
+*.db
+*.sqlite3
+chroma_db/
+vector_store/
 
-# Environment & Utilities
-python-dotenv>=1.0.0
-pydantic>=2.0.0
+# IDEs & OS
+.vscode/
+.idea/
+.DS_Store
 
-# User Interface / Testing (opcional)
-streamlit>=1.35.0
-pytest>=8.0.0
+# Testing & Logs
+.pytest_cache/
+*.log
