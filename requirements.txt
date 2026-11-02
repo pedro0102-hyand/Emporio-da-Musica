@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/
+
+# Environment Variables / Secrets
+.env
+
+# Database & Vector DB
+*.db
+*.sqlite3
+chroma_db/
+vector_store/
+
+# IDEs & OS
+.vscode/
+.idea/
+.DS_Store
+
+# Testing & Logs
+.pytest_cache/
+*.log
