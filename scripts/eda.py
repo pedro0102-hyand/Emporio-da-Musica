@@ -13,9 +13,10 @@ CSV_FILES = {
     "promotions": "desafio_tecnico_ai_eng - promotions.csv"
 }
 
+# function to load CSV files into pandas DataFrames
 def load_dataframes():
     
-    dfs = {}
+    dfs = {} # dictionary to hold DataFrames
     for table_name, filename in CSV_FILES.items():
         file_path = os.path.join(DATA_DIR, filename)
         if not os.path.exists(file_path):
@@ -111,7 +112,7 @@ def inspect_json_specs(dfs):
             print(f"• {cat}: {sorted(list(keys))}")
 
 if __name__ == "__main__":
-    
+
     dfs = load_dataframes()
     if dfs:
         analyze_data_types_and_nulls(dfs)
