@@ -6,51 +6,51 @@
 [![ChromaDB](https://img.shields.io/badge/VectorDB-ChromaDB-purple.svg)](https://www.trychroma.com/)
 [![Streamlit](https://img.shields.io/badge/UI-Streamlit-red.svg)](https://streamlit.io/)
 
-Este projeto foi desenvolvido como solução para o desafio técnico para a vaga de AI Engineer da empresa Artefact.
+This project was developed as a solution for the technical challenge for the AI Engineer role at Artefact.
 
-O objetivo do desafio era criar um assistente virtual inteligente para a loja Empório da Música, capaz de responder dúvidas sobre catálogo, pedidos, políticas internas e fornecer uma experiência de atendimento natural e contextualizada usando IA, RAG e tool calling.
-
----
-
-## Visão geral
-
-O Empório da Música é um agente conversacional de atendimento ao cliente construído com LangGraph, SQLite e ChromaDB, usando modelos de linguagem da Groq para execução rápida e eficiente.
-
-O agente consegue:
-
-- consultar produtos do catálogo com filtros por nome, preço e categoria;
-- verificar o status de pedidos com base em ID ou código de rastreio;
-- buscar histórico de compras por email ou telefone;
-- responder dúvidas sobre políticas da loja usando busca semântica em documentos;
-- manter memória contextual por sessão;
-- rejeitar perguntas fora de escopo e evitar alucinações.
+The goal of the challenge was to create an intelligent virtual assistant for the Empório da Música store, capable of answering questions about the catalog, orders, internal policies, and providing a natural, contextualized customer experience using AI, RAG, and tool calling.
 
 ---
 
-## Arquitetura do sistema
+## Overview
 
-O projeto combina três camadas principais:
+Empório da Música is a conversational customer support agent built with LangGraph, SQLite, and ChromaDB, using language models from Groq for fast and efficient execution.
 
-1. Orquestração do agente com LangGraph
-2. Ferramentas de consulta estruturada em SQLite
-3. Recuperação semântica de conhecimento em ChromaDB
+The agent is able to:
 
-Fluxo geral:
+- query the product catalog with filters by name, price, and category;
+- check the status of orders based on ID or tracking code;
+- search purchase history by email or phone number;
+- answer questions about store policies using semantic search over policy documents;
+- maintain contextual memory per session;
+- reject out-of-scope questions and avoid hallucinations.
+
+---
+
+## System architecture
+
+The project combines three main layers:
+
+1. Agent orchestration with LangGraph
+2. Structured data queries in SQLite
+3. Semantic retrieval of knowledge in ChromaDB
+
+General flow:
 
 ```text
-Usuário
+User
   ↓
 CLI / Streamlit
   ↓
 LangGraph Agent
-  ├─ busca em SQLite
-  ├─ busca semântica em documentos
-  └─ resposta contextualizada via Groq
+  ├─ SQLite lookup
+  ├─ semantic search in documents
+  └─ contextual response via Groq
 ```
 
 ---
 
-## Stack tecnológica
+## Tech stack
 
 - Python 3.12
 - LangGraph
@@ -64,72 +64,73 @@ LangGraph Agent
 
 ---
 
-## 🛠️ Decisões Técnicas e Justificativas Arquiteturais
+## Business rules and guardrails
 
-### 1. Escolha do Provedor de LLM: **Groq API (`llama-3.3-70b-versatile` / `llama3-8b-8192`)**
-* **Decisão:** Optou-se pela infraestrutura da **Groq** utilizando o modelo **Llama 3.3 70B** (ou Llama 3 8B como fallback) em substituição a APIs de cotas estritas como a do Gemini.
-* **Justificativa FinOps & Performance:**
-  - **Gratuito e Sem Restrições Rígidas de Rate Limit:** A Groq oferece um plano gratuito generoso com taxa de requisições por minuto (RPM) e tokens por minuto (TPM) significativamente superiores para desenvolvimento.
-  - **Latência Próxima a Zero:** A aceleração via LPU (Language Processing Unit) da Groq entrega respostas em milissegundos, resolvendo o gargalo de tempo de espera do ciclo de *Tool Calling* do LangGraph.
-  - **Suporte Nativo a Function Calling:** O Llama 3.3 ajustado pela Groq possui altíssima precisão na estruturação de argumentos JSON para acionamento de ferramentas.
+The agent was designed to follow explicit customer service policies:
 
-### 2. Embeddings Locais Gratuitos: **`sentence-transformers/all-MiniLM-L6-v2`**
-* **Decisão:** Uso do modelo open-source via `langchain-huggingface` para vetorização dos chunks do PDF.
-* **Justificativa:**
-  - **Custo Zero & Privacidade:** Executa localmente no processador da máquina sem depender de chamadas tarifadas de API externa.
-  - **Eficiência:** Modelo compacto (80MB) com alta fidelidade semântica para textos em português, gerando vetores de 384 dimensões otimizados para busca por similaridade de cosseno no ChromaDB.
-
-### 3. Banco de Dados Relacional (SQLite) & Pré-processamento Otimizado
-* **Decisão:** Ingestão das 6 tabelas CSV em um banco relacional `emporio.db` com criação prévia de índices relacionais.
-* **Justificativa:**
-  - **Consultas em < 5ms:** Índices nas colunas `product_id`, `category_id`, `tracking_code`, `email` e `phone` garantem recuperações instantâneas.
-  - **Integridade de Dados:** Validação do formato JSON do campo `specs` em produtos e suporte a buscas insensíveis a caracteres especiais em dados de contato dos clientes.
-
-### 4. Orquestração de Estado: **LangGraph**
-* **Decisão:** Estruturação do agente como um grafo de estados (*StateGraph*) com ciclo condicional ReAct (`call_model` ↔ `tools`).
-* **Justificativa:**
-  - **Determinismo e Controle:** Diferente de agentes legados de cadeia única (`AgentExecutor`), o LangGraph permite definir rotas explícitas de término (`END`) e controle de exceções.
-  - **Memória Transacional:** Uso do `MemorySaver` com `thread_id` para manter o contexto completo da conversa entre múltiplos turnos do atendimento.
+- respond only about products and services from Empório da Música;
+- never invent stock, prices, or delivery statuses;
+- use tools to query real database data before answering;
+- answer return and cancellation questions based on the store’s policy documents;
+- refuse out-of-scope requests politely and safely;
+- maintain conversation context per session.
 
 ---
 
-## 🛡️ Guardrails e Regras de Negócio
+## 🛠️ Technical decisions and architectural rationale
 
-O assistente foi programado via *System Prompt* robusto (`src/prompt.py`) para operar sob três pilares fundamentais:
+### 1. Choice of LLM provider: **Groq API (`llama-3.3-70b-versatile` / `llama3-8b-8192`)**
+* **Decision:** We chose the **Groq** infrastructure using the **Llama 3.3 70B** model (or Llama 3 8B as a fallback) instead of stricter quota-limited APIs such as Gemini.
+* **FinOps and performance rationale:**
+  - **Free and without rigid rate-limit restrictions:** Groq offers a generous free tier with significantly higher requests-per-minute (RPM) and tokens-per-minute (TPM) for development work.
+  - **Near-zero latency:** Groq’s LPU acceleration delivers responses in milliseconds, eliminating the bottleneck in the LangGraph tool-calling cycle.
+  - **Native function-calling support:** The Llama 3.3 model adapted for Groq has high accuracy when structuring JSON arguments to trigger tools.
 
-1. **Restrição de Escopo de Produtos (Acessórios):**
-   * *Regra:* A Empório da Música vende **exclusivamente instrumentos musicais**.
-   * *Comportamento:* Se o usuário solicitar cabos, palhetas, encordoamentos ou cases, o agente recusa cordialmente a venda e orienta o cliente a procurar parceiros locais.
-2. **Perguntas Fora de Escopo Geral:**
-   * *Regra:* Dúvidas não relacionadas à loja ou a instrumentos (ex.: programação, notícias, conselhos).
-   * *Comportamento:* O agente redireciona a conversa educadamente para a loja sem alucinar.
-3. **Anti-Alucinação Financeira e de Estoque:**
-   * *Regra:* O modelo nunca inventa preços ou status de entrega. Toda informação factual deve obrigatoriamente ser oriunda do retorno de uma *Tool* (`search_products`, `get_order_status`, `consult_store_policies`).
+### 2. Free local embeddings: **`sentence-transformers/all-MiniLM-L6-v2`**
+* **Decision:** Use an open-source model via `langchain-huggingface` to vectorize PDF chunks.
+* **Rationale:**
+  - **Zero cost and privacy:** Runs locally on the machine’s processor without relying on paid external API calls.
+  - **Efficiency:** A compact model (80 MB) with strong semantic fidelity for Portuguese text, generating 384-dimensional vectors optimized for cosine similarity search in ChromaDB.
+
+### 3. Relational database (SQLite) and optimized preprocessing
+* **Decision:** Load the 6 CSV tables into a relational database `emporio.db` with prior creation of relational indexes.
+* **Rationale:**
+  - **Queries in under 5 ms:** Indexes on `product_id`, `category_id`, `tracking_code`, `email`, and `phone` guarantee near-instant retrieval.
+  - **Data integrity:** Validation of the JSON format in the `specs` field for products and support for case-insensitive searches in customer contact data.
+
+### 4. State orchestration: **LangGraph**
+* **Decision:** Structure the agent as a state graph (*StateGraph*) with a conditional ReAct loop (`call_model` ↔ `tools`).
+* **Rationale:**
+  - **Determinism and control:** Unlike legacy single-chain agents (`AgentExecutor`), LangGraph allows explicit termination routes (`END`) and exception handling.
+  - **Transactional memory:** Using `MemorySaver` with `thread_id` preserves the full conversation context across multiple turns.
 
 ---
 
-## Regras de negócio e guardrails
+## 🛡️ Guardrails and business rules
 
-O agente foi desenhado para seguir políticas explícitas de atendimento:
+The assistant was implemented through a robust system prompt (`src/prompt.py`) to operate under three core principles:
 
-- responde apenas sobre produtos e serviços da Empório da Música;
-- não inventa estoque, preço ou status de entregas;
-- usa ferramentas para consultar dados reais do banco antes de responder;
-- trata dúvidas sobre devolução e arrependimento com base em documentos da loja;
-- recusa pedidos fora de escopo com resposta educada e segura;
-- mantém contexto de conversa por sessão.
+1. **Restriction of product scope (accessories):**
+   * *Rule:* Empório da Música sells **only musical instruments**.
+   * *Behavior:* If the user asks for cables, picks, strings, or cases, the agent politely refuses the sale and directs the customer to local partners.
+2. **Out-of-scope questions:**
+   * *Rule:* Questions unrelated to the store or instruments (e.g., programming, news, general advice).
+   * *Behavior:* The agent redirects the conversation politely toward the store’s scope without hallucinating.
+3. **Anti-financial and stock hallucination:**
+   * *Rule:* The model never invents prices or delivery statuses. Any factual information must come from the result of a tool call (`search_products`, `get_order_status`, `consult_store_policies`).
 
 ---
 
-## Estrutura do repositório
+## Repository structure
 
 ```text
 Emporio-da-Musica/
-├── app.py                     # interface web em Streamlit
-├── main.py                    # interface em linha de comando
-├── requirements.txt           # dependências do projeto
-├── .env                       # variáveis locais de ambiente (não versionado)
-├── README.md                  # documentação do projeto
+├── app.py                     # interactive web interface in Streamlit
+├── main.py                    # interactive command-line interface
+├── requirements.txt           # project dependencies
+├── .env                       # local environment variables (not versioned)
+├── README.md                 # project documentation (Portuguese)
+├── README.en.md              # project documentation (English translation)
 ├── data/
 │   ├── desafio_tecnico_ai_eng - categories.csv
 │   ├── desafio_tecnico_ai_eng - customers.csv
@@ -137,21 +138,21 @@ Emporio-da-Musica/
 │   ├── desafio_tecnico_ai_eng - orders.csv
 │   ├── desafio_tecnico_ai_eng - products.csv
 │   ├── desafio_tecnico_ai_eng - promotions.csv
-│   ├── emporio.db             # banco SQLite gerado
+│   ├── emporio.db             # generated SQLite database
 │   └── políticas_da_loja.pdf
-├── vector_store/              # índice vetorial do ChromaDB
+├── vector_store/              # ChromaDB vector index
 ├── src/
-│   ├── agent.py               # orquestração do agente
-│   ├── db_tools.py            # consultas estruturadas no SQLite
-│   ├── prompt.py              # instruções do sistema e guardrails
-│   └── rag_tools.py           # busca semântica para políticas da loja
+│   ├── agent.py               # agent orchestration
+│   ├── db_tools.py            # structured queries in SQLite
+│   ├── prompt.py              # system instructions and guardrails
+│   └── rag_tools.py           # semantic search for store policies
 ├── scripts/
-│   ├── preprocess_db.py       # criação do banco SQLite
-│   ├── ingest_polices.py      # ingestão do PDF em ChromaDB
-│   ├── eda.py                 # análise exploratória
+│   ├── preprocess_db.py       # creation of the SQLite database
+│   ├── ingest_polices.py      # ingestion of the PDF into ChromaDB
+│   ├── eda.py                 # exploratory analysis
 │   └── tests/
-│       ├── test_agent.py      # testes de integração do agente
-│       └── test_tools.py      # testes das ferramentas
+│       ├── test_agent.py      # agent integration tests
+│       └── test_tools.py      # tool tests
 ├── conversations/
 │   ├── scenario_1_catalogo_e_preco.md
 │   ├── scneario_2_informacoes_gerais.md
@@ -163,47 +164,47 @@ Emporio-da-Musica/
 
 ---
 
-## Pré-requisitos
+## Prerequisites
 
 - Python 3.12+
 - `pip`
-- acesso à API da Groq
-- ambiente virtual recomendado
+- access to the Groq API
+- a virtual environment is recommended
 
 ---
 
-## Configuração do ambiente
+## Environment setup
 
-### 1) Clone o repositório
+### 1) Clone the repository
 
 ```bash
 git clone https://github.com/seu-usuario/Emporio-da-Musica.git
 cd Emporio-da-Musica
 ```
 
-### 2) Crie e ative um ambiente virtual
+### 2) Create and activate a virtual environment
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 ```
 
-No Windows PowerShell:
+On Windows PowerShell:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 3) Instale as dependências
+### 3) Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4) Configure as variáveis de ambiente
+### 4) Configure environment variables
 
-Crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
+Create a `.env` file at the project root with the following content:
 
 ```env
 GROQ_API_KEY=sua_chave_aqui
@@ -213,128 +214,128 @@ GROQ_MODEL=openai/gpt-oss-20b
 LLM_TEMPERATURE=0.6
 ```
 
-> A chave da Groq deve ser obtida no painel da Groq Cloud.
+> The Groq key must be obtained from the Groq Cloud dashboard.
 
 ---
 
-## Preparação dos dados
+## Data preparation
 
-Antes de rodar a aplicação, é necessário preparar o banco SQLite e indexar as políticas em ChromaDB.
+Before running the application, it is necessary to prepare the SQLite database and index the policies in ChromaDB.
 
-### Banco relacional
+### Relational database
 
 ```bash
 python scripts/preprocess_db.py
 ```
 
-Esse comando gera o arquivo `data/emporio.db` com tabelas de produtos, clientes, pedidos, itens e categorias.
+This command generates the `data/emporio.db` file with tables for products, customers, orders, order items, and categories.
 
-### Base vetorial de políticas
+### Vector database for policies
 
 ```bash
 python scripts/ingest_polices.py
 ```
 
-Esse comando lê o PDF de políticas da loja e cria o índice vetorial em `vector_store/`.
+This command reads the store policy PDF and creates the vector index in `vector_store/`.
 
 ---
 
-## Como executar o projeto
+## How to run the project
 
-### Opção 1: interface web com Streamlit
+### Option 1: web interface with Streamlit
 
 ```bash
 streamlit run app.py
 ```
 
-Acesse o navegador em:
+Open the browser at:
 
 ```text
 http://localhost:8501
 ```
 
-### Opção 2: terminal interativo
+### Option 2: interactive terminal
 
 ```bash
 python main.py
 ```
 
-Esse modo mantém uma conversa em CLI e é útil para validar rapidamente o comportamento do agente.
+This mode keeps a live CLI conversation and is useful for validating the agent behavior quickly.
 
 ---
 
-## Testes
+## Tests
 
-### Testes de ferramentas
+### Tool tests
 
 ```bash
 python scripts/tests/test_tools.py
 ```
 
-### Testes do agente
+### Agent tests
 
 ```bash
 python scripts/tests/test_agent.py
 ```
 
-Os testes cobrem:
+The tests cover:
 
-- busca de produtos;
-- consulta de status de pedido;
-- políticas e devolução;
-- guardrail de fora de escopo;
-- memória contextual da conversa.
-
----
-
-## Exemplos de uso
-
-Alguns exemplos de perguntas suportadas pelo agente:
-
-- Quais violões vocês têm até R$ 1000?
-- Qual o status do meu pedido número 1?
-- Qual o histórico de compras do cliente lucas.mendes@jmail.com?
-- Posso devolver um pedido por arrependimento?
-- Vocês vendem palhetas e acessórios?
+- product search;
+- order status queries;
+- policies and returns;
+- out-of-scope guardrails;
+- contextual conversation memory.
 
 ---
 
-## Limitações conhecidas
+## Examples of use
 
-- a base vetorial é persistida localmente em disco e depende da presença da pasta `vector_store/`;
-- o modelo de inferência depende da disponibilidade da API da Groq;
-- o projeto foi pensado para uso em contexto de demonstração e prototipagem, com foco em robustez funcional e clareza de arquitetura.
+Some examples of questions supported by the agent:
 
----
-
-## Observações finais
-
-Este projeto foi construído como solução para um desafio técnico de IA, com foco em:
-
-- orchestration de agentes;
-- uso de ferramentas em pipeline;
-- recuperação de contexto por RAG;
-- busca em banco de dados relacional;
-- desenho de guardrails e restrição de escopo;
-- experiência prática de atendimento em ambiente comercial.
-
-A proposta busca demonstrar capacidade de engenharia de IA aplicada ao atendimento de clientes e simular um cenário real de uso em e-commerce de instrumentos musicais.
+- Which guitars do you have for under R$ 1000?
+- What is the status of my order number 1?
+- What is the purchase history for lucas.mendes@jmail.com?
+- Can I return an order due to buyer’s remorse?
+- Do you sell picks and accessories?
 
 ---
 
-## Declaração do desafio
+## Known limitations
 
-Este projeto faz parte de um desafio técnico para a vaga de AI Engineer na empresa Artefact, desenvolvido com foco em demonstrar domínio prático de:
-
-- arquitetura de agentes;
-- integração com modelos de linguagem;
-- RAG e busca semântica;
-- bancos de dados transacionais;
-- programação orientada a ferramentas e workflows de IA;
-- e aplicação de boas práticas de engenharia e validação do sistema.
+- the vector database is persisted locally on disk and depends on the presence of the `vector_store/` folder;
+- the inference model depends on the availability of the Groq API;
+- the project was designed for demonstration and prototyping contexts, focused on functional robustness and architectural clarity.
 
 ---
 
-## Declaração de Uso de Assistentes de IA
+## Final notes
 
-Em conformidade com a transparência do processo seletivo, declara-se que ferramentas de IA Generativa (ChatGPT / Claude / Gemini) foram utilizadas como **parceiras de desenvolvimento** para a aceleração de escrita de código boilerplate, estruturação de testes unitários e refatoração de documentos. No presente projeto, a ferramenta escolhida foi o GitHub Copilot, utilizado para agilizar trechos repetitivos, sugerir melhorias estruturais, revisar trechos de documentação e apoiar a validação de fluxos de integração. Toda a lógica de negócios, design da arquitetura de agentes, escolhas de bibliotecas e validação dos dados foram projetadas, implementadas e auditadas pelo autor do projeto.
+This project was developed as a solution to a technical AI challenge, focused on:
+
+- agent orchestration;
+- tool use inside a pipeline;
+- contextual recovery via RAG;
+- relational database search;
+- designing guardrails and scope restrictions;
+- practical customer support experience in a commercial environment.
+
+The proposal aims to demonstrate the ability to apply AI engineering to customer service and simulate a real-world use case in an online music instrument store.
+
+---
+
+## Challenge declaration
+
+This project is part of a technical challenge for the AI Engineer role at Artefact, developed with the aim of demonstrating practical knowledge of:
+
+- agent architecture;
+- integration with language models;
+- RAG and semantic search;
+- transactional databases;
+- tool-oriented programming and AI workflows;
+- and the application of good engineering and validation practices.
+
+---
+
+## Declaration of use of AI assistants
+
+In compliance with transparency requirements for the selection process, it is declared that Generative AI tools (ChatGPT / Claude / Gemini) were used as **development partners** to accelerate boilerplate code writing, structure unit tests, and refactor documentation. In this project, the selected tool was GitHub Copilot, used to speed up repetitive sections, suggest structural improvements, review documentation passages, and support validation of integration flows. All business logic, agent architecture design, library choices, and validation of data were designed, implemented, and audited by the project author.
