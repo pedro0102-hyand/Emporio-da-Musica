@@ -3,20 +3,12 @@ import uuid
 import streamlit as st
 from dotenv import load_dotenv
 
-# Carrega variáveis de ambiente (.env)
 load_dotenv()
 
 from src.agent import build_agent
 
-# Configuração da página Streamlit
-st.set_page_config(
-    page_title="Empório da Música - Atendimento",
-    page_icon="🎸",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="Empório da Música - Atendimento", page_icon="🎸", layout="wide",initial_sidebar_state="expanded")
 
-# Estilização CSS customizada
 st.markdown("""
     <style>
     .main-header {
@@ -44,8 +36,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Barra Lateral (Sidebar) com informações da loja
 with st.sidebar:
+
     st.image("https://img.icons8.com/color/96/guitar.png", width=80)
     st.markdown("## 🎸 Empório da Música")
     st.markdown("*Sua música começa aqui.*")
@@ -68,14 +60,12 @@ with st.sidebar:
     """)
     
     st.divider()
-    
-    # Botão para reiniciar a conversa
+
     if st.button("🔄 Nova Conversa / Limpar Chat", use_container_width=True):
         st.session_state.messages = []
         st.session_state.thread_id = str(uuid.uuid4())
         st.rerun()
 
-# Inicialização do estado da sessão (Session State)
 if "thread_id" not in st.session_state:
     st.session_state.thread_id = str(uuid.uuid4())
 
@@ -84,7 +74,6 @@ if "messages" not in st.session_state:
         {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a) à Empório da Música! 🎸\n\nSou o assistente virtual da loja e posso te ajudar a consultar nosso catálogo de instrumentos, acompanhar o status do seu pedido ou tirar dúvidas sobre nossas políticas de entrega e troca.\n\nComo posso te ajudar hoje?"}
     ]
 
-# Inicializa o agente
 @st.cache_resource
 def load_agent():
     return build_agent()
@@ -95,7 +84,6 @@ except Exception as e:
     st.error(f"⚠️ Erro ao inicializar o agente. Verifique se a variável `GEMINI_API_KEY` está configurada no arquivo `.env`. Detalhes: {e}")
     st.stop()
 
-# Cabeçalho Principal
 st.markdown('<div class="main-header">🎸 Empório da Música</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Atendimento Virtual Inteligente — Campo Grande / MS</div>', unsafe_allow_html=True)
 
@@ -108,19 +96,15 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Exibição do histórico de mensagens no chat
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Caixa de texto para entrada do usuário
 if prompt := st.chat_input("Digite sua mensagem para a Empório da Música..."):
-    # Adiciona e exibe a mensagem do usuário
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Resposta do agente com indicação visual de carregamento (Spinner)
     with st.chat_message("assistant"):
         with st.spinner("Consultando sistemas da loja..."):
             try:
@@ -131,7 +115,6 @@ if prompt := st.chat_input("Digite sua mensagem para a Empório da Música..."):
                 bot_response = response["messages"][-1].content
                 st.markdown(bot_response)
                 
-                # Armazena a resposta no histórico
                 st.session_state.messages.append({"role": "assistant", "content": bot_response})
             except Exception as e:
                 error_msg = f"❌ Desculpe, ocorreu um erro ao processar sua solicitação: {e}"

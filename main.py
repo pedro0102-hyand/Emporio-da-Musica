@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 load_dotenv()
 from src.agent import build_agent
 
-
 def run_cli():
+
     print("=" * 60)
     print("🎸 EMPÓRIO DA MÚSICA - ASSISTENTE VIRTUAL DE ATENDIMENTO 🎸")
     print("=" * 60)
@@ -45,7 +45,6 @@ def run_cli():
             break
         except Exception as e:
             print(f"\n❌ Ocorreu um erro durante o processamento: {e}\n")
-
 
 if __name__ == "__main__":
     run_cli()
