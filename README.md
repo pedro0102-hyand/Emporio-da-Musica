@@ -64,6 +64,50 @@ LangGraph Agent
 
 ---
 
+## 🛠️ Decisões Técnicas e Justificativas Arquiteturais
+
+### 1. Escolha do Provedor de LLM: **Groq API (`llama-3.3-70b-versatile` / `llama3-8b-8192`)**
+* **Decisão:** Optou-se pela infraestrutura da **Groq** utilizando o modelo **Llama 3.3 70B** (ou Llama 3 8B como fallback) em substituição a APIs de cotas estritas como a do Gemini.
+* **Justificativa FinOps & Performance:**
+  - **Gratuito e Sem Restrições Rígidas de Rate Limit:** A Groq oferece um plano gratuito generoso com taxa de requisições por minuto (RPM) e tokens por minuto (TPM) significativamente superiores para desenvolvimento.
+  - **Latência Próxima a Zero:** A aceleração via LPU (Language Processing Unit) da Groq entrega respostas em milissegundos, resolvendo o gargalo de tempo de espera do ciclo de *Tool Calling* do LangGraph.
+  - **Suporte Nativo a Function Calling:** O Llama 3.3 ajustado pela Groq possui altíssima precisão na estruturação de argumentos JSON para acionamento de ferramentas.
+
+### 2. Embeddings Locais Gratuitos: **`sentence-transformers/all-MiniLM-L6-v2`**
+* **Decisão:** Uso do modelo open-source via `langchain-huggingface` para vetorização dos chunks do PDF.
+* **Justificativa:**
+  - **Custo Zero & Privacidade:** Executa localmente no processador da máquina sem depender de chamadas tarifadas de API externa.
+  - **Eficiência:** Modelo compacto (80MB) com alta fidelidade semântica para textos em português, gerando vetores de 384 dimensões otimizados para busca por similaridade de cosseno no ChromaDB.
+
+### 3. Banco de Dados Relacional (SQLite) & Pré-processamento Otimizado
+* **Decisão:** Ingestão das 6 tabelas CSV em um banco relacional `emporio.db` com criação prévia de índices relacionais.
+* **Justificativa:**
+  - **Consultas em < 5ms:** Índices nas colunas `product_id`, `category_id`, `tracking_code`, `email` e `phone` garantem recuperações instantâneas.
+  - **Integridade de Dados:** Validação do formato JSON do campo `specs` em produtos e suporte a buscas insensíveis a caracteres especiais em dados de contato dos clientes.
+
+### 4. Orquestração de Estado: **LangGraph**
+* **Decisão:** Estruturação do agente como um grafo de estados (*StateGraph*) com ciclo condicional ReAct (`call_model` ↔ `tools`).
+* **Justificativa:**
+  - **Determinismo e Controle:** Diferente de agentes legados de cadeia única (`AgentExecutor`), o LangGraph permite definir rotas explícitas de término (`END`) e controle de exceções.
+  - **Memória Transacional:** Uso do `MemorySaver` com `thread_id` para manter o contexto completo da conversa entre múltiplos turnos do atendimento.
+
+---
+
+## 🛡️ Guardrails e Regras de Negócio
+
+O assistente foi programado via *System Prompt* robusto (`src/prompt.py`) para operar sob três pilares fundamentais:
+
+1. **Restrição de Escopo de Produtos (Acessórios):**
+   * *Regra:* A Empório da Música vende **exclusivamente instrumentos musicais**.
+   * *Comportamento:* Se o usuário solicitar cabos, palhetas, encordoamentos ou cases, o agente recusa cordialmente a venda e orienta o cliente a procurar parceiros locais.
+2. **Perguntas Fora de Escopo Geral:**
+   * *Regra:* Dúvidas não relacionadas à loja ou a instrumentos (ex.: programação, notícias, conselhos).
+   * *Comportamento:* O agente redireciona a conversa educadamente para a loja sem alucinar.
+3. **Anti-Alucinação Financeira e de Estoque:**
+   * *Regra:* O modelo nunca inventa preços ou status de entrega. Toda informação factual deve obrigatoriamente ser oriunda do retorno de uma *Tool* (`search_products`, `get_order_status`, `consult_store_policies`).
+
+---
+
 ## Regras de negócio e guardrails
 
 O agente foi desenhado para seguir políticas explícitas de atendimento:
@@ -288,3 +332,9 @@ Este projeto faz parte de um desafio técnico para a vaga de AI Engineer na empr
 - bancos de dados transacionais;
 - programação orientada a ferramentas e workflows de IA;
 - e aplicação de boas práticas de engenharia e validação do sistema.
+
+---
+
+## Declaração de Uso de Assistentes de IA
+
+Em conformidade com a transparência do processo seletivo, declara-se que ferramentas de IA Generativa (ChatGPT / Claude / Gemini) foram utilizadas como **parceiras de desenvolvimento** para a aceleração de escrita de código boilerplate, estruturação de testes unitários e refatoração de documentos. Toda a lógica de negócios, design da arquitetura de agentes, escolhas de bibliotecas e validação dos dados foram projetadas, implementadas e auditadas pelo autor do projeto.
