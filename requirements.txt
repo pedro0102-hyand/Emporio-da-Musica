@@ -4,7 +4,8 @@ langgraph>=0.1.0
 langchain-openai>=0.1.0
 langchain-community>=0.2.0
 langchain-huggingface>=0.0.1
-langchain-chromadb>=0.1.0
+langchain-chroma>=0.1.0
+langchain-google-genai>=1.0.0
 
 # Vector Database & RAG
 chromadb>=0.5.0
