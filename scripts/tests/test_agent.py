@@ -14,10 +14,10 @@ class TestEmporioAgent(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.api_key = os.getenv("GEMINI_API_KEY")
+        cls.api_key = os.getenv("GROQ_API_KEY")
         if not cls.api_key:
-            raise unittest.SkipTest("⚠️ GEMINI_API_KEY não encontrada no .env. Testes de integração ignorados.")
-        
+            raise unittest.SkipTest("⚠️ GROQ_API_KEY não encontrada no .env. Testes de integração ignorados.")
+
         print("🤖 Inicializando o agente da Empório da Música para os testes...")
         cls.agent = build_agent()
 
