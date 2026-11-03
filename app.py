@@ -81,7 +81,7 @@ def load_agent():
 try:
     agent = load_agent()
 except Exception as e:
-    st.error(f"⚠️ Erro ao inicializar o agente. Verifique se a variável `GEMINI_API_KEY` está configurada no arquivo `.env`. Detalhes: {e}")
+    st.error(f"⚠️ Erro ao inicializar o agente. Verifique se a variável `GROQ_API_KEY` está configurada no arquivo `.env`. Detalhes: {e}")
     st.stop()
 
 st.markdown('<div class="main-header">🎸 Empório da Música</div>', unsafe_allow_html=True)
