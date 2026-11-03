@@ -18,17 +18,28 @@ TOOLS = [
     consult_store_policies
 ]
 
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "gemini-3.8-flash").strip() or "gemini-3.8-flash"
+DEFAULT_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.6"))
+
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
 
-def build_agent(model_name: str = "gemini-1.5-flash", temperature: float = 0.6):
-   
+def build_agent(model_name: str | None = None, temperature: float | None = None):
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("⚠️ A variável GEMINI_API_KEY não foi encontrada nas variáveis de ambiente (.env).")
 
-   # build the LLM with tools
-    llm = ChatGoogleGenerativeAI(model = model_name, api_key = api_key, temperature = temperature)
+    resolved_model = (model_name or os.getenv("LLM_MODEL") or DEFAULT_MODEL).strip() or "gemini-3.8-flash"
+    resolved_temperature = float(temperature if temperature is not None else os.getenv("LLM_TEMPERATURE", DEFAULT_TEMPERATURE))
+
+    try:
+        llm = ChatGoogleGenerativeAI(model=resolved_model, api_key=api_key, temperature=resolved_temperature)
+    except Exception as exc:
+        if resolved_model != "gemini-3.8-flash" and "NOT_FOUND" in str(exc):
+            llm = ChatGoogleGenerativeAI(model="gemini-3.8-flash", api_key=api_key, temperature=resolved_temperature)
+        else:
+            raise
+
     llm_with_tools = llm.bind_tools(TOOLS)
 
     # Node function to call the model and generate a response

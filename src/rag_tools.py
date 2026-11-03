@@ -10,7 +10,8 @@ embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-
 
 @tool
 def consult_store_policies(query: str) -> str:
-    
+    """Busca políticas e regras da loja em uma base vetorial semântica para responder dúvidas sobre devolução, entrega e garantia."""
+
     if not os.path.exists(CHROMA_DIR):
         return "Erro: A base de políticas da loja ainda não foi indexada."
         
